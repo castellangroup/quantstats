@@ -826,17 +826,18 @@ def metrics(
     metrics = _pd.DataFrame()
     metrics["Start Period"] = _pd.Series(s_start)
     metrics["End Period"] = _pd.Series(s_end)
-    metrics["Risk-Free Rate %"] = _pd.Series(s_rf) * 100
-    metrics["Time in Market %"] = _stats.exposure(df, prepare_returns=False) * pct
 
     metrics["~"] = blank
 
     if compounded:
-        metrics["Cumulative Return %"] = (_stats.comp(df) * pct).map("{:,.2f}".format)
+        cum_return = _stats.comp(df)
+        metrics["Cumulative Return %"] = (cum_return * pct).map("{:,.2f}".format)
     else:
         metrics["Total Return %"] = (df.sum() * pct).map("{:,.2f}".format)
 
-    metrics["CAGR﹪%"] = _stats.cagr(df, rf, compounded) * pct
+    #metrics["CAGR﹪%"] = _stats.cagr(df, rf, compounded) * pct
+    days_in_mkt = (df != 0).sum()
+    metrics["Annual Return %"] = ((cum_return + 1) ** (1 / (days_in_mkt / win_year)) - 1) * pct
 
     metrics["~~~~~~~~~~~~~~"] = blank
 
