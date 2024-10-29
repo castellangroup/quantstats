@@ -34,7 +34,8 @@ def _qtd(df):
     date = _dt.datetime.now()
     for q in [1, 4, 7, 10]:
         if date.month <= q:
-            return df[df.index >= _dt.datetime(date.year, q, 1).strftime("%Y-%m-01")]
+            return df[
+                df.index >= _dt.datetime(date.year, q, 1).strftime("%Y-%m-01")]
     return df[df.index >= date.strftime("%Y-%m-01")]
 
 
@@ -72,7 +73,8 @@ def to_returns(prices, rf=0.0):
 
 def to_prices(returns, base=1e5):
     """Converts returns series to price data"""
-    returns = returns.copy().fillna(0).replace([_np.inf, -_np.inf], float("NaN"))
+    returns = returns.copy().fillna(0).replace([_np.inf, -_np.inf],
+                                               float("NaN"))
 
     return base + base * _stats.compsum(returns)
 
@@ -95,9 +97,10 @@ def exponential_stdev(returns, window=30, is_halflife=False):
     """Returns series representing exponential volatility of returns"""
     returns = _prepare_returns(returns)
     halflife = window if is_halflife else None
-    return returns.ewm(
-        com=None, span=window, halflife=halflife, min_periods=window
-    ).std()
+    return returns.ewm(com=None,
+                       span=window,
+                       halflife=halflife,
+                       min_periods=window).std()
 
 
 def rebase(prices, base=100.0):
@@ -140,15 +143,16 @@ def aggregate_returns(returns, period=None, compounded=True):
         return group_returns(returns, index.week, compounded=compounded)
 
     if "eow" in period or period == "W":
-        return group_returns(returns, [index.year, index.week], compounded=compounded)
+        return group_returns(returns, [index.year, index.week],
+                             compounded=compounded)
 
     if "eom" in period or period == "M":
-        return group_returns(returns, [index.year, index.month], compounded=compounded)
+        return group_returns(returns, [index.year, index.month],
+                             compounded=compounded)
 
     if "eoq" in period or period == "Q":
-        return group_returns(
-            returns, [index.year, index.quarter], compounded=compounded
-        )
+        return group_returns(returns, [index.year, index.quarter],
+                             compounded=compounded)
 
     if not isinstance(period, str):
         return group_returns(returns, period, compounded)
@@ -242,7 +246,10 @@ def download_returns(ticker, period="max", proxy=None):
     return _yf.download(**params)["Close"].pct_change()
 
 
-def _prepare_benchmark(benchmark=None, period="max", rf=0.0, prepare_returns=True):
+def _prepare_benchmark(benchmark=None,
+                       period="max",
+                       rf=0.0,
+                       prepare_returns=True):
     """
     Fetch benchmark if ticker is provided, and pass through
     _prepare_returns()
@@ -258,17 +265,14 @@ def _prepare_benchmark(benchmark=None, period="max", rf=0.0, prepare_returns=Tru
     elif isinstance(benchmark, _pd.DataFrame):
         benchmark = benchmark[benchmark.columns[0]].copy()
 
-    if isinstance(period, _pd.DatetimeIndex) and set(period) != set(benchmark.index):
+    if isinstance(period,
+                  _pd.DatetimeIndex) and set(period) != set(benchmark.index):
 
         # Adjust Benchmark to Strategy frequency
         benchmark_prices = to_prices(benchmark, base=1)
         new_index = _pd.date_range(start=period[0], end=period[-1], freq="D")
-        benchmark = (
-            benchmark_prices.reindex(new_index, method="bfill")
-            .reindex(period)
-            .pct_change()
-            .fillna(0)
-        )
+        benchmark = (benchmark_prices.reindex(
+            new_index, method="bfill").reindex(period).pct_change().fillna(0))
         benchmark = benchmark[benchmark.index.isin(period)]
 
     benchmark.index = benchmark.index.tz_localize(None)
@@ -311,9 +315,9 @@ def _in_notebook(matplotlib_inline=False):
 
 def _count_consecutive(data):
     """Counts consecutive data (like cumsum() with reset on zeroes)"""
-
     def _count(data):
-        return data * (data.groupby((data != data.shift(1)).cumsum()).cumcount() + 1)
+        return data * (data.groupby(
+            (data != data.shift(1)).cumsum()).cumcount() + 1)
 
     if isinstance(data, _pd.DataFrame):
         for col in data.columns:
@@ -327,9 +331,11 @@ def _score_str(val):
     return ("" if "-" in val else "+") + str(val)
 
 
-def make_index(
-    ticker_weights, rebalance="1M", period="max", returns=None, match_dates=False
-):
+def make_index(ticker_weights,
+               rebalance="1M",
+               period="max",
+               returns=None,
+               match_dates=False):
     """
     Makes an index out of the given tickers and weights.
     Optionally you can pass a dataframe with the returns.
@@ -365,7 +371,7 @@ def make_index(
     index = _pd.DataFrame(portfolio).dropna()
 
     if match_dates:
-        index = index[max(index.ne(0).idxmax()) :]
+        index = index[max(index.ne(0).idxmax()):]
 
     # no rebalance?
     if rebalance is None:
@@ -383,14 +389,14 @@ def make_index(
     index = _pd.concat([index, rbdf["break"]], axis=1)
 
     # mark first day day
-    index["first_day"] = _pd.isna(index["break"]) & ~_pd.isna(index["break"].shift(1))
+    index["first_day"] = _pd.isna(
+        index["break"]) & ~_pd.isna(index["break"].shift(1))
     index.loc[index.index[0], "first_day"] = True
 
     # multiply first day of each rebalance period by the weight
     for ticker, weight in ticker_weights.items():
-        index[ticker] = _np.where(
-            index["first_day"], weight * index[ticker], index[ticker]
-        )
+        index[ticker] = _np.where(index["first_day"], weight * index[ticker],
+                                  index[ticker])
 
     # drop first marker
     index.drop(columns=["first_day"], inplace=True)
@@ -410,13 +416,13 @@ def make_portfolio(returns, start_balance=1e5, mode="comp", round_to=None):
         p1 = to_prices(returns, start_balance)
     else:
         # fixed amount every day
-        comp_rev = (start_balance + start_balance * returns.shift(1)).fillna(
-            start_balance
-        ) * returns
+        comp_rev = (start_balance + start_balance *
+                    returns.shift(1)).fillna(start_balance) * returns
         p1 = start_balance + comp_rev.cumsum()
 
     # add day before with starting balance
-    p0 = _pd.Series(data=start_balance, index=p1.index + _pd.Timedelta(days=-1))[:1]
+    p0 = _pd.Series(data=start_balance,
+                    index=p1.index + _pd.Timedelta(days=-1))[:1]
 
     portfolio = _pd.concat([p0, p1])
 

@@ -26,7 +26,6 @@ from scipy.stats import norm as _norm, linregress as _linregress
 
 from . import utils as _utils
 
-
 # ======== STATS ========
 
 
@@ -59,10 +58,8 @@ def distribution(returns, compounded=True, prepare_returns=True):
         }
 
     if isinstance(returns, _pd.DataFrame):
-        warn(
-            "Pandas DataFrame was passed (Series expected). "
-            "Only first column will be used."
-        )
+        warn("Pandas DataFrame was passed (Series expected). "
+             "Only first column will be used.")
         returns = returns.copy()
         returns.columns = map(str.lower, returns.columns)
         if len(returns.columns) > 1 and "close" in returns.columns:
@@ -85,7 +82,10 @@ def distribution(returns, compounded=True, prepare_returns=True):
     }
 
 
-def expected_return(returns, aggregate=None, compounded=True, prepare_returns=True):
+def expected_return(returns,
+                    aggregate=None,
+                    compounded=True,
+                    prepare_returns=True):
     """
     Returns the expected return for a given period
     by calculating the geometric holding period return
@@ -93,7 +93,7 @@ def expected_return(returns, aggregate=None, compounded=True, prepare_returns=Tr
     if prepare_returns:
         returns = _utils._prepare_returns(returns)
     returns = _utils.aggregate_returns(returns, aggregate, compounded)
-    return _np.product(1 + returns) ** (1 / len(returns)) - 1
+    return _np.product(1 + returns)**(1 / len(returns)) - 1
 
 
 def geometric_mean(retruns, aggregate=None, compounded=True):
@@ -130,7 +130,10 @@ def worst(returns, aggregate=None, compounded=True, prepare_returns=True):
     return _utils.aggregate_returns(returns, aggregate, compounded).min()
 
 
-def consecutive_wins(returns, aggregate=None, compounded=True, prepare_returns=True):
+def consecutive_wins(returns,
+                     aggregate=None,
+                     compounded=True,
+                     prepare_returns=True):
     """Returns the maximum consecutive wins by day/month/week/quarter/year"""
     if prepare_returns:
         returns = _utils._prepare_returns(returns)
@@ -138,7 +141,10 @@ def consecutive_wins(returns, aggregate=None, compounded=True, prepare_returns=T
     return _utils._count_consecutive(returns).max()
 
 
-def consecutive_losses(returns, aggregate=None, compounded=True, prepare_returns=True):
+def consecutive_losses(returns,
+                       aggregate=None,
+                       compounded=True,
+                       prepare_returns=True):
     """
     Returns the maximum consecutive losses by
     day/month/week/quarter/year
@@ -168,7 +174,6 @@ def exposure(returns, prepare_returns=True):
 
 def win_rate(returns, aggregate=None, compounded=True, prepare_returns=True):
     """Calculates the win ratio for a period"""
-
     def _win_rate(series):
         try:
             return len(series[series > 0]) / len(series[series != 0])
@@ -234,9 +239,10 @@ def volatility(returns, periods=252, annualize=True, prepare_returns=True):
     return std
 
 
-def rolling_volatility(
-    returns, rolling_period=126, periods_per_year=252, prepare_returns=True
-):
+def rolling_volatility(returns,
+                       rolling_period=126,
+                       periods_per_year=252,
+                       prepare_returns=True):
     if prepare_returns:
         returns = _utils._prepare_returns(returns, rolling_period)
 
@@ -318,10 +324,12 @@ def rolling_sharpe(
     if prepare_returns:
         returns = _utils._prepare_returns(returns, rf, rolling_period)
 
-    res = returns.rolling(rolling_period).mean() / returns.rolling(rolling_period).std()
+    res = returns.rolling(rolling_period).mean() / returns.rolling(
+        rolling_period).std()
 
     if annualize:
-        res = res * _np.sqrt(1 if periods_per_year is None else periods_per_year)
+        res = res * _np.sqrt(
+            1 if periods_per_year is None else periods_per_year)
     return res
 
 
@@ -340,7 +348,7 @@ def sortino(returns, rf=0, periods=252, annualize=True, smart=False):
 
     returns = _utils._prepare_returns(returns, rf, periods)
 
-    downside = _np.sqrt((returns[returns < 0] ** 2).sum() / len(returns))
+    downside = _np.sqrt((returns[returns < 0]**2).sum() / len(returns))
 
     if smart:
         # penalize sortino with auto correlation
@@ -358,25 +366,25 @@ def smart_sortino(returns, rf=0, periods=252, annualize=True):
     return sortino(returns, rf, periods, annualize, True)
 
 
-def rolling_sortino(
-    returns, rf=0, rolling_period=126, annualize=True, periods_per_year=252, **kwargs
-):
+def rolling_sortino(returns,
+                    rf=0,
+                    rolling_period=126,
+                    annualize=True,
+                    periods_per_year=252,
+                    **kwargs):
     if rf != 0 and rolling_period is None:
         raise Exception("Must provide periods if rf != 0")
 
     if kwargs.get("prepare_returns", True):
         returns = _utils._prepare_returns(returns, rf, rolling_period)
 
-    downside = (
-        returns.rolling(rolling_period).apply(
-            lambda x: (x.values[x.values < 0] ** 2).sum()
-        )
-        / rolling_period
-    )
+    downside = (returns.rolling(rolling_period).apply(
+        lambda x: (x.values[x.values < 0]**2).sum()) / rolling_period)
 
     res = returns.rolling(rolling_period).mean() / _np.sqrt(downside)
     if annualize:
-        res = res * _np.sqrt(1 if periods_per_year is None else periods_per_year)
+        res = res * _np.sqrt(
+            1 if periods_per_year is None else periods_per_year)
     return res
 
 
@@ -386,20 +394,30 @@ def adjusted_sortino(returns, rf=0, periods=252, annualize=True, smart=False):
     direct comparisons to the Sharpe. See here for more info:
     https://archive.is/wip/2rwFW
     """
-    data = sortino(returns, rf, periods=periods, annualize=annualize, smart=smart)
+    data = sortino(returns,
+                   rf,
+                   periods=periods,
+                   annualize=annualize,
+                   smart=smart)
     return data / _sqrt(2)
 
 
-def probabilistic_ratio(
-    series, rf=0.0, base="sharpe", periods=252, annualize=False, smart=False
-):
+def probabilistic_ratio(series,
+                        rf=0.0,
+                        base="sharpe",
+                        periods=252,
+                        annualize=False,
+                        smart=False):
 
     if base.lower() == "sharpe":
         base = sharpe(series, periods=periods, annualize=False, smart=smart)
     elif base.lower() == "sortino":
         base = sortino(series, periods=periods, annualize=False, smart=smart)
     elif base.lower() == "adjusted_sortino":
-        base = adjusted_sortino(series, periods=periods, annualize=False, smart=smart)
+        base = adjusted_sortino(series,
+                                periods=periods,
+                                annualize=False,
+                                smart=smart)
     else:
         raise Exception(
             "`metric` must be either `sharpe`, `sortino`, or `adjusted_sortino`"
@@ -409,15 +427,8 @@ def probabilistic_ratio(
 
     n = len(series)
 
-    sigma_sr = _np.sqrt(
-        (
-            1
-            + (0.5 * base**2)
-            - (skew_no * base)
-            + (((kurtosis_no - 3) / 4) * base**2)
-        )
-        / (n - 1)
-    )
+    sigma_sr = _np.sqrt((1 + (0.5 * base**2) - (skew_no * base) +
+                         (((kurtosis_no - 3) / 4) * base**2)) / (n - 1))
 
     ratio = (base - rf) / sigma_sr
     psr = _norm.cdf(ratio)
@@ -427,25 +438,37 @@ def probabilistic_ratio(
     return psr
 
 
-def probabilistic_sharpe_ratio(
-    series, rf=0.0, periods=252, annualize=False, smart=False
-):
-    return probabilistic_ratio(
-        series, rf, base="sharpe", periods=periods, annualize=annualize, smart=smart
-    )
+def probabilistic_sharpe_ratio(series,
+                               rf=0.0,
+                               periods=252,
+                               annualize=False,
+                               smart=False):
+    return probabilistic_ratio(series,
+                               rf,
+                               base="sharpe",
+                               periods=periods,
+                               annualize=annualize,
+                               smart=smart)
 
 
-def probabilistic_sortino_ratio(
-    series, rf=0.0, periods=252, annualize=False, smart=False
-):
-    return probabilistic_ratio(
-        series, rf, base="sortino", periods=periods, annualize=annualize, smart=smart
-    )
+def probabilistic_sortino_ratio(series,
+                                rf=0.0,
+                                periods=252,
+                                annualize=False,
+                                smart=False):
+    return probabilistic_ratio(series,
+                               rf,
+                               base="sortino",
+                               periods=periods,
+                               annualize=annualize,
+                               smart=smart)
 
 
-def probabilistic_adjusted_sortino_ratio(
-    series, rf=0.0, periods=252, annualize=False, smart=False
-):
+def probabilistic_adjusted_sortino_ratio(series,
+                                         rf=0.0,
+                                         periods=252,
+                                         annualize=False,
+                                         smart=False):
     return probabilistic_ratio(
         series,
         rf,
@@ -490,11 +513,12 @@ def omega(returns, rf=0.0, required_return=0.0, periods=252):
     if periods == 1:
         return_threshold = required_return
     else:
-        return_threshold = (1 + required_return) ** (1.0 / periods) - 1
+        return_threshold = (1 + required_return)**(1.0 / periods) - 1
 
     returns_less_thresh = returns - return_threshold
     numer = returns_less_thresh[returns_less_thresh > 0.0].sum().values[0]
-    denom = -1.0 * returns_less_thresh[returns_less_thresh < 0.0].sum().values[0]
+    denom = -1.0 * returns_less_thresh[
+        returns_less_thresh < 0.0].sum().values[0]
 
     if denom > 0.0:
         return numer / denom
@@ -528,7 +552,7 @@ def cagr(returns, rf=0.0, compounded=True, periods=252):
 
     years = (returns.index[-1] - returns.index[0]).days / periods
 
-    res = abs(total + 1.0) ** (1.0 / years) - 1
+    res = abs(total + 1.0)**(1.0 / years) - 1
 
     if isinstance(returns, _pd.DataFrame):
         res = _pd.Series(res)
@@ -615,7 +639,7 @@ def risk_of_ruin(returns, prepare_returns=True):
     if prepare_returns:
         returns = _utils._prepare_returns(returns)
     wins = win_rate(returns)
-    return ((1 - wins) / (1 + wins)) ** len(returns)
+    return ((1 - wins) / (1 + wins))**len(returns)
 
 
 def ror(returns):
@@ -644,7 +668,10 @@ def var(returns, sigma=1, confidence=0.95, prepare_returns=True):
     return value_at_risk(returns, sigma, confidence, prepare_returns)
 
 
-def conditional_value_at_risk(returns, sigma=1, confidence=0.95, prepare_returns=True):
+def conditional_value_at_risk(returns,
+                              sigma=1,
+                              confidence=0.95,
+                              prepare_returns=True):
     """
     Calculats the conditional daily value-at-risk (aka expected shortfall)
     quantifies the amount of tail risk an investment
@@ -658,7 +685,8 @@ def conditional_value_at_risk(returns, sigma=1, confidence=0.95, prepare_returns
 
 def cvar(returns, sigma=1, confidence=0.95, prepare_returns=True):
     """Shorthand for conditional_value_at_risk()"""
-    return conditional_value_at_risk(returns, sigma, confidence, prepare_returns)
+    return conditional_value_at_risk(returns, sigma, confidence,
+                                     prepare_returns)
 
 
 def expected_shortfall(returns, sigma=1, confidence=0.95):
@@ -785,7 +813,6 @@ def drawdown_details(drawdown):
     duration, max drawdown and max dd for 99% of the dd period
     for every drawdown period
     """
-
     def _drawdown_details(drawdown):
         # mark no drawdown
         no_dd = drawdown == 0
@@ -824,18 +851,16 @@ def drawdown_details(drawdown):
         # build dataframe from results
         data = []
         for i, _ in enumerate(starts):
-            dd = drawdown[starts[i] : ends[i]]
+            dd = drawdown[starts[i]:ends[i]]
             clean_dd = -remove_outliers(-dd, 0.99)
-            data.append(
-                (
-                    starts[i],
-                    dd.idxmin(),
-                    ends[i],
-                    (ends[i] - starts[i]).days + 1,
-                    dd.min() * 100,
-                    clean_dd.min() * 100,
-                )
-            )
+            data.append((
+                starts[i],
+                dd.idxmin(),
+                ends[i],
+                (ends[i] - starts[i]).days + 1,
+                dd.min() * 100,
+                clean_dd.min() * 100,
+            ))
 
         df = _pd.DataFrame(
             data=data,
@@ -891,8 +916,7 @@ def r_squared(returns, benchmark, prepare_returns=True):
     if prepare_returns:
         returns = _utils._prepare_returns(returns)
     _, _, r_val, _, _ = _linregress(
-        returns, _utils._prepare_benchmark(benchmark, returns.index)
-    )
+        returns, _utils._prepare_benchmark(benchmark, returns.index))
     return r_val**2
 
 
@@ -930,13 +954,11 @@ def greeks(returns, benchmark, periods=252.0, prepare_returns=True):
     alpha = returns.mean() - beta * benchmark.mean()
     alpha = alpha * periods
 
-    return _pd.Series(
-        {
-            "beta": beta,
-            "alpha": alpha,
-            # "vol": _np.sqrt(matrix[0, 0]) * _np.sqrt(periods)
-        }
-    ).fillna(0)
+    return _pd.Series({
+        "beta": beta,
+        "alpha": alpha,
+        # "vol": _np.sqrt(matrix[0, 0]) * _np.sqrt(periods)
+    }).fillna(0)
 
 
 def rolling_greeks(returns, benchmark, periods=252, prepare_returns=True):
@@ -947,8 +969,7 @@ def rolling_greeks(returns, benchmark, periods=252, prepare_returns=True):
         data={
             "returns": returns,
             "benchmark": _utils._prepare_benchmark(benchmark, returns.index),
-        }
-    )
+        })
     df = df.fillna(0)
     corr = df.rolling(int(periods)).corr().unstack()["returns"]["benchmark"]
     std = df.rolling(int(periods)).std()
@@ -957,7 +978,11 @@ def rolling_greeks(returns, benchmark, periods=252, prepare_returns=True):
     alpha = df["returns"].mean() - beta * df["benchmark"].mean()
 
     # alpha = alpha * periods
-    return _pd.DataFrame(index=returns.index, data={"beta": beta, "alpha": alpha})
+    return _pd.DataFrame(index=returns.index,
+                         data={
+                             "beta": beta,
+                             "alpha": alpha
+                         })
 
 
 def compare(
@@ -979,24 +1004,23 @@ def compare(
     if isinstance(returns, _pd.Series):
         data = _pd.DataFrame(
             data={
-                "Benchmark": _utils.aggregate_returns(benchmark, aggregate, compounded)
-                * 100,
-                "Returns": _utils.aggregate_returns(returns, aggregate, compounded)
-                * 100,
-            }
-        )
+                "Benchmark":
+                _utils.aggregate_returns(benchmark, aggregate, compounded) *
+                100,
+                "Returns":
+                _utils.aggregate_returns(returns, aggregate, compounded) * 100,
+            })
 
         data["Multiplier"] = data["Returns"] / data["Benchmark"]
         data["Won"] = _np.where(data["Returns"] >= data["Benchmark"], "+", "-")
     elif isinstance(returns, _pd.DataFrame):
         bench = {
-            "Benchmark": _utils.aggregate_returns(benchmark, aggregate, compounded)
-            * 100
+            "Benchmark":
+            _utils.aggregate_returns(benchmark, aggregate, compounded) * 100
         }
         strategy = {
-            "Returns_"
-            + str(i): _utils.aggregate_returns(returns[col], aggregate, compounded)
-            * 100
+            "Returns_" + str(i):
+            _utils.aggregate_returns(returns[col], aggregate, compounded) * 100
             for i, col in enumerate(returns.columns)
         }
         data = _pd.DataFrame(data={**bench, **strategy})
@@ -1010,10 +1034,8 @@ def compare(
 def monthly_returns(returns, eoy=True, compounded=True, prepare_returns=True):
     """Calculates monthly returns"""
     if isinstance(returns, _pd.DataFrame):
-        warn(
-            "Pandas DataFrame was passed (Series expected). "
-            "Only first column will be used."
-        )
+        warn("Pandas DataFrame was passed (Series expected). "
+             "Only first column will be used.")
         returns = returns.copy()
         returns.columns = map(str.lower, returns.columns)
         if len(returns.columns) > 1 and "close" in returns.columns:
@@ -1026,8 +1048,8 @@ def monthly_returns(returns, eoy=True, compounded=True, prepare_returns=True):
     original_returns = returns.copy()
 
     returns = _pd.DataFrame(
-        _utils.group_returns(returns, returns.index.strftime("%Y-%m-01"), compounded)
-    )
+        _utils.group_returns(returns, returns.index.strftime("%Y-%m-01"),
+                             compounded))
 
     returns.columns = ["Returns"]
     returns.index = _pd.to_datetime(returns.index)
@@ -1037,29 +1059,11 @@ def monthly_returns(returns, eoy=True, compounded=True, prepare_returns=True):
     returns["Month"] = returns.index.strftime("%b")
 
     # make pivot table
-    returns = returns.pivot(index="Year", columns="Month", values="Returns").fillna(0)
+    returns = returns.pivot(index="Year", columns="Month",
+                            values="Returns").fillna(0)
 
     # handle missing months
     for month in [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-    ]:
-        if month not in returns.columns:
-            returns.loc[:, month] = 0
-
-    # order columns by month
-    returns = returns[
-        [
             "Jan",
             "Feb",
             "Mar",
@@ -1072,13 +1076,30 @@ def monthly_returns(returns, eoy=True, compounded=True, prepare_returns=True):
             "Oct",
             "Nov",
             "Dec",
-        ]
-    ]
+    ]:
+        if month not in returns.columns:
+            returns.loc[:, month] = 0
+
+    # order columns by month
+    returns = returns[[
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ]]
 
     if eoy:
-        returns["eoy"] = _utils.group_returns(
-            original_returns, original_returns.index.year, compounded=compounded
-        ).values
+        returns["eoy"] = _utils.group_returns(original_returns,
+                                              original_returns.index.year,
+                                              compounded=compounded).values
 
     returns.columns = map(lambda x: str(x).upper(), returns.columns)
     returns.index.name = None

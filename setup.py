@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-
 """QuantStats: Portfolio analytics for quants
 https://github.com/ranaroussi/quantstats
 QuantStats performs portfolio profiling, to allow quants and
@@ -45,13 +44,10 @@ setup(
         # 'Development Status :: 3 - Alpha',
         # 'Development Status :: 4 - Beta',
         'Development Status :: 5 - Production/Stable',
-
         'Operating System :: OS Independent',
-
         'Intended Audience :: Developers',
         'Intended Audience :: Financial and Insurance Industry',
         'Intended Audience :: Science/Research',
-
         'Topic :: Office/Business :: Financial',
         'Topic :: Office/Business :: Financial :: Investment',
         'Topic :: Software Development :: Libraries',
@@ -66,7 +62,6 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
     ],
-
     platforms=['any'],
     keywords="""quant algotrading algorithmic-trading quantitative-trading
                 quantitative-analysis algo-trading visualization plotting""",
@@ -77,7 +72,6 @@ setup(
             'sample=sample:main',
         ],
     },
-
     include_package_data=True,
     # package_data={
     #     'static': 'quantstats/report.html*'
